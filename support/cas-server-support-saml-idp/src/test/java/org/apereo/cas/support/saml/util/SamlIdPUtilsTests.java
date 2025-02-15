@@ -3,11 +3,11 @@ package org.apereo.cas.support.saml.util;
 import org.apereo.cas.support.saml.BaseSamlIdPConfigurationTests;
 import org.apereo.cas.support.saml.SamlException;
 import org.apereo.cas.support.saml.SamlIdPUtils;
-import org.apereo.cas.support.saml.services.idp.metadata.SamlRegisteredServiceServiceProviderMetadataFacade;
+import org.apereo.cas.support.saml.services.idp.metadata.SamlRegisteredServiceMetadataAdaptor;
 import org.apereo.cas.util.CollectionUtils;
 
 import lombok.val;
-import net.shibboleth.utilities.java.support.resolver.CriteriaSet;
+import net.shibboleth.shared.resolver.CriteriaSet;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -18,10 +18,13 @@ import org.opensaml.saml.common.messaging.context.SAMLBindingContext;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.criterion.BindingCriterion;
 import org.opensaml.saml.criterion.EntityRoleCriterion;
+import org.opensaml.saml.metadata.resolver.MetadataResolver;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Issuer;
-import org.opensaml.saml.saml2.metadata.AssertionConsumerService;
+import org.opensaml.saml.saml2.core.LogoutRequest;
+import org.opensaml.saml.saml2.metadata.IndexedEndpoint;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
+import org.opensaml.saml.saml2.metadata.SingleLogoutService;
 
 import java.util.UUID;
 
@@ -34,16 +37,35 @@ import static org.mockito.Mockito.*;
  * @author Misagh Moayyed
  * @since 5.3.0
  */
-@Tag("SAML")
-public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
+@Tag("SAML2")
+class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
     @BeforeEach
-    public void before() {
+    void before() {
         servicesManager.deleteAll();
     }
 
     @Test
-    public void verifyMetadataForAllServices() throws Exception {
+    void verifyServiceNameQualifier() {
+        val service = getSamlRegisteredServiceForTestShib();
+        val nameIdQualifier = UUID.randomUUID().toString();
+        service.setNameIdQualifier(nameIdQualifier);
+        servicesManager.save(service);
+        assertEquals(nameIdQualifier, SamlIdPUtils.determineNameIdNameQualifier(service, mock(MetadataResolver.class)));
+    }
+
+    @Test
+    void verifyEndpointWithoutLocation() {
+        val logoutRequest = mock(LogoutRequest.class);
+        val endpoint = mock(SingleLogoutService.class);
+        val adaptor = mock(SamlRegisteredServiceMetadataAdaptor.class);
+        when(adaptor.getSingleLogoutService(anyString())).thenReturn(endpoint);
+        assertThrows(SamlException.class, () -> SamlIdPUtils.determineEndpointForRequest(Pair.of(logoutRequest, new MessageContext()),
+            adaptor, SAMLConstants.SAML2_POST_BINDING_URI));
+    }
+
+    @Test
+    void verifyMetadataForAllServices() throws Throwable {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val md = SamlIdPUtils.getMetadataResolverForAllSamlServices(servicesManager, service.getServiceId(),
@@ -61,7 +83,7 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
 
     @Test
-    public void verifyUnsignedRequestWithAssertionConsumerServiceUrlNotMatchingMetadataAcsUrl() {
+    void verifyUnsignedRequestWithAssertionConsumerServiceUrlNotMatchingMetadataAcsUrl() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -75,13 +97,13 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
         val context = new MessageContext();
         context.setMessage(authnRequest);
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         assertThrows(SamlException.class, () -> SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, context),
             adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI));
     }
 
     @Test
-    public void verifyUnsignedRequestWithAssertionConsumerServiceUrlNotMatchingMetadataAcsUrlWithIndex() {
+    void verifyUnsignedRequestWithAssertionConsumerServiceUrlNotMatchingMetadataAcsUrlWithIndex() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -95,7 +117,7 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
         val context = new MessageContext();
         context.setMessage(authnRequest);
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, context), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals("https://sp.testshib.org/Shibboleth.sso/SAML2/POST", acs.getResponseLocation());
@@ -103,7 +125,7 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
     }
 
     @Test
-    public void verifySignedRequestWithAssertionConsumerServiceUrlNotMatchingMetadataAcsUrl() {
+    void verifySignedRequestWithAssertionConsumerServiceUrlNotMatchingMetadataAcsUrl() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -115,14 +137,14 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
         val acsUrl = "https://some.acs.url";
         when(authnRequest.getAssertionConsumerServiceURL()).thenReturn(acsUrl);
 
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, new MessageContext()), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals(acsUrl, acs.getLocation());
     }
 
     @Test
-    public void verifySignedRequestWithAssertionConsumerServiceIndex() {
+    void verifySignedRequestWithAssertionConsumerServiceIndex() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -133,15 +155,15 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
         when(authnRequest.getProtocolBinding()).thenReturn(SAMLConstants.SAML2_POST_BINDING_URI);
         when(authnRequest.isSigned()).thenReturn(true);
 
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, new MessageContext()), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals("https://index9.testshib.org/Shibboleth.sso/SAML/POST", acs.getLocation());
-        assertEquals(9, ((AssertionConsumerService) acs).getIndex());
+        assertEquals(9, ((IndexedEndpoint) acs).getIndex());
     }
 
     @Test
-    public void verifyUnsignedRequestWithAssertionConsumerServiceIndex() {
+    void verifyUnsignedRequestWithAssertionConsumerServiceIndex() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -152,17 +174,17 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
         when(authnRequest.getProtocolBinding()).thenReturn(SAMLConstants.SAML2_POST_BINDING_URI);
         when(authnRequest.isSigned()).thenReturn(false);
 
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val context = new MessageContext();
         context.setMessage(authnRequest);
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, context), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals("https://index9.testshib.org/Shibboleth.sso/SAML/POST", acs.getLocation());
-        assertEquals(9, ((AssertionConsumerService) acs).getIndex());
+        assertEquals(9, ((IndexedEndpoint) acs).getIndex());
     }
 
     @Test
-    public void verifySignedRequestWithAssertionConsumerServiceUnknownIndex() {
+    void verifySignedRequestWithAssertionConsumerServiceUnknownIndex() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -173,16 +195,16 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
         when(authnRequest.getProtocolBinding()).thenReturn(SAMLConstants.SAML2_POST_BINDING_URI);
         when(authnRequest.isSigned()).thenReturn(true);
 
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, new MessageContext()),
             adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals("https://www.testshib.org/Shibboleth.sso/SAML2/POST", acs.getLocation());
-        assertEquals(7, ((AssertionConsumerService) acs).getIndex());
+        assertEquals(7, ((IndexedEndpoint) acs).getIndex());
     }
 
     @Test
-    public void verifySignedRequestWithEmbeddedSignature() {
+    void verifySignedRequestWithEmbeddedSignature() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -195,18 +217,18 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
         val context = new MessageContext();
         context.setMessage(authnRequest);
-        val binding = context.getSubcontext(SAMLBindingContext.class, true);
+        val binding = context.ensureSubcontext(SAMLBindingContext.class);
         binding.setHasBindingSignature(true);
         binding.setRelayState(UUID.randomUUID().toString());
 
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, context), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals(acsUrl, acs.getLocation());
     }
 
     @Test
-    public void verifyUnsignedRequestWithAssertionConsumerServiceUrlMatchingMetadataAcsUrl() {
+    void verifyUnsignedRequestWithAssertionConsumerServiceUrlMatchingMetadataAcsUrl() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -219,14 +241,14 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
         val context = new MessageContext();
         context.setMessage(authnRequest);
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, context), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals(acsUrl, acs.getLocation());
     }
 
     @Test
-    public void verifyUnsignedRequestWithAssertionConsumerServiceUrlMatchingAlternateMetadataAcsUrl() {
+    void verifyUnsignedRequestWithAssertionConsumerServiceUrlMatchingAlternateMetadataAcsUrl() {
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);
         val authnRequest = mock(AuthnRequest.class);
@@ -239,16 +261,16 @@ public class SamlIdPUtilsTests extends BaseSamlIdPConfigurationTests {
 
         val context = new MessageContext();
         context.setMessage(authnRequest);
-        val adapter = SamlRegisteredServiceServiceProviderMetadataFacade.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
+        val adapter = SamlRegisteredServiceMetadataAdaptor.get(samlRegisteredServiceCachingMetadataResolver, service, service.getServiceId());
         val acs = SamlIdPUtils.determineEndpointForRequest(Pair.of(authnRequest, context), adapter.get(), SAMLConstants.SAML2_POST_BINDING_URI);
         assertNotNull(acs);
         assertEquals(acsUrl, acs.getLocation());
     }
 
     @Test
-    public void verifyPreparePeerEntitySamlEndpointContext() {
+    void verifyPreparePeerEntitySamlEndpointContext() {
         val context = new MessageContext();
-        val adaptor = mock(SamlRegisteredServiceServiceProviderMetadataFacade.class);
+        val adaptor = mock(SamlRegisteredServiceMetadataAdaptor.class);
 
         val service = getSamlRegisteredServiceForTestShib();
         servicesManager.save(service);

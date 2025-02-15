@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +23,7 @@ import java.util.List;
 @Accessors(chain = true)
 public class MergeAttributesSearchEntryHandlersProperties implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -3988972992084584349L;
 
     /**
@@ -32,5 +34,5 @@ public class MergeAttributesSearchEntryHandlersProperties implements Serializabl
     /**
      * The Attribute names.
      */
-    private List<String> attributeNames = new ArrayList<>(0);
+    private List<String> attributeNames = new ArrayList<>();
 }

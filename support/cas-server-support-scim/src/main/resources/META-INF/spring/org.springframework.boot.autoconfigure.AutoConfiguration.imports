@@ -1,0 +1,2 @@
+org.apereo.cas.config.CasScimAutoConfiguration
+org.apereo.cas.config.CasScimPersonDirectoryAutoConfiguration

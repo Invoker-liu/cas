@@ -2,11 +2,11 @@ package org.apereo.cas.configuration.model.support.saml.sps;
 
 import org.apereo.cas.configuration.support.RequiredProperty;
 import org.apereo.cas.configuration.support.RequiresModule;
-
+import org.apereo.cas.configuration.support.TriStateBoolean;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
-
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 @RequiresModule(name = "cas-server-support-saml-idp")
 public abstract class AbstractSamlSPProperties implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -5381463661659831898L;
 
     /**
@@ -59,7 +60,7 @@ public abstract class AbstractSamlSPProperties implements Serializable {
      * Allow attributes that are to be released to this SP.
      * Attributes should be separated by commas and can be virtually mapped and renamed.
      */
-    private List<String> attributes = new ArrayList<>(0);
+    private List<String> attributes = new ArrayList<>();
 
     /**
      * Signature location used to verify metadata.
@@ -70,7 +71,7 @@ public abstract class AbstractSamlSPProperties implements Serializable {
      * List of entityIds allowed for this service provider.
      * Multiple ids can be specified in the event that the metadata is an aggregate.
      */
-    private List<String> entityIds = new ArrayList<>(0);
+    private List<String> entityIds = new ArrayList<>();
 
     /**
      * Indicate whether responses should be signed.
@@ -80,7 +81,7 @@ public abstract class AbstractSamlSPProperties implements Serializable {
     /**
      * Indicate whether assertions should be signed.
      */
-    private boolean signAssertions;
+    private TriStateBoolean signAssertions = TriStateBoolean.FALSE;
 
     /**
      * Add attributes.

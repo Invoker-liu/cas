@@ -2,6 +2,8 @@ package org.apereo.cas.oidc.issuer;
 
 import org.apereo.cas.services.OidcRegisteredService;
 
+import org.pac4j.core.context.WebContext;
+
 import java.util.Optional;
 
 /**
@@ -14,12 +16,17 @@ import java.util.Optional;
 public interface OidcIssuerService {
 
     /**
+     * Default bean name.
+     */
+    String BEAN_NAME = "oidcIssuerService";
+
+    /**
      * Immutable issuer service that always returns a static issuer.
      *
      * @param issuer the issuer
      * @return the oidc issuer service
      */
-    static OidcIssuerService immutable(final String issuer) {
+    static OidcIssuerService echoing(final String issuer) {
         return registeredService -> issuer;
     }
 
@@ -30,4 +37,18 @@ public interface OidcIssuerService {
      * @return the string
      */
     String determineIssuer(Optional<OidcRegisteredService> registeredService);
+
+    /**
+     * Is valid issuer for endpoint.
+     * This operation should calculate the expected issuer from the request
+     * and compare that with the system-defined issuer, while considering
+     * the endpoint that is requesting access.
+     *
+     * @param webContext the web context
+     * @param endpoint   the endpoint
+     * @return true/false
+     */
+    default boolean validateIssuer(final WebContext webContext, final String endpoint) {
+        return true;
+    }
 }

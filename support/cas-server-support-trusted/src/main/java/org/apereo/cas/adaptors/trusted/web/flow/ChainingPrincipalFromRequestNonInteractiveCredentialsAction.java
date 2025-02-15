@@ -8,7 +8,7 @@ import org.apereo.cas.web.flow.resolver.CasWebflowEventResolver;
 
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +20,7 @@ import java.util.Objects;
  * @since 5.2.0
  */
 public class ChainingPrincipalFromRequestNonInteractiveCredentialsAction extends BasePrincipalFromNonInteractiveCredentialsAction {
-    private final List<PrincipalFromRequestExtractorAction> chain = new ArrayList<>(0);
+    private final List<PrincipalFromRequestExtractorAction> chain = new ArrayList<>();
 
     public ChainingPrincipalFromRequestNonInteractiveCredentialsAction(final CasDelegatingWebflowEventResolver initialAuthenticationAttemptWebflowEventResolver,
                                                                        final CasWebflowEventResolver serviceTicketRequestWebflowEventResolver,
