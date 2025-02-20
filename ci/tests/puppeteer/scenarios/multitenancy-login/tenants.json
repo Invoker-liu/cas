@@ -1,0 +1,51 @@
+[
+  "java.util.ArrayList",
+  [
+    {
+      "@class": "org.apereo.cas.multitenancy.TenantDefinition",
+      "id": "shire",
+      "description": "This is the Shire tenant definition",
+      "authenticationPolicy": {
+        "@class": "org.apereo.cas.multitenancy.DefaultTenantAuthenticationPolicy",
+        "authenticationHandlers": [
+          "java.util.ArrayList",
+          [
+            "STATIC"
+          ]
+        ]
+      },
+      "delegatedAuthenticationPolicy": {
+        "@class": "org.apereo.cas.multitenancy.DefaultTenantDelegatedAuthenticationPolicy",
+        "allowedProviders": [
+          "java.util.ArrayList",
+          [
+            "CasClient1"
+          ]
+        ]
+      }
+    },
+    {
+      "@class": "org.apereo.cas.multitenancy.TenantDefinition",
+      "id": "moria",
+      "description": "This is the Moria tenant definition",
+      "authenticationPolicy": {
+        "@class": "org.apereo.cas.multitenancy.DefaultTenantAuthenticationPolicy",
+        "authenticationHandlers": [
+          "java.util.ArrayList",
+          [
+            "JSON"
+          ]
+        ]
+      },
+      "delegatedAuthenticationPolicy": {
+        "@class": "org.apereo.cas.multitenancy.DefaultTenantDelegatedAuthenticationPolicy",
+        "allowedProviders": [
+          "java.util.ArrayList",
+          [
+            "CasClient2"
+          ]
+        ]
+      }
+    }
+  ]
+]

@@ -1,7 +1,7 @@
 /**********************************
  * Base64 Core
  **********************************/
-(function (root, factory) {
+((root, factory) => {
     if (typeof define === 'function' && define.amd) {
         define(['base64js'], factory);
     } else if (typeof module === 'object' && module.exports) {
@@ -9,7 +9,7 @@
     } else {
         root.base64url = factory(root.base64js);
     }
-})(this, function (base64js) {
+})(this, base64js => {
 
     function ensureUint8Array(arg) {
         if (arg instanceof ArrayBuffer) {
@@ -47,7 +47,10 @@
  * WebAuthN Core
  *******************************************************/
 
-(function (root, factory) {
+const pathSegments = window.location.pathname.split('/');
+const contextPath = pathSegments[1] ? `/${pathSegments[1]}` : '';
+
+((root, factory) => {
     if (typeof define === 'function' && define.amd) {
         define(['base64url'], factory);
     } else if (typeof module === 'object' && module.exports) {
@@ -55,7 +58,7 @@
     } else {
         root.webauthn = factory(root.base64url);
     }
-})(this, function (base64url) {
+})(this, base64url => {
 
     function extend(obj, more) {
         return Object.assign({}, obj, more);
@@ -148,43 +151,40 @@
 
     /** Turn a PublicKeyCredential object into a plain object with base64url encoded binary values */
     function responseToObject(response) {
-        if (response.u2fResponse) {
-            return response;
+        let clientExtensionResults = {};
+
+        try {
+            clientExtensionResults = response.getClientExtensionResults();
+        } catch (e) {
+            console.error('getClientExtensionResults failed', e);
+        }
+
+        if (response.response.attestationObject) {
+            return {
+                type: response.type,
+                id: response.id,
+                response: {
+                    attestationObject: base64url.fromByteArray(response.response.attestationObject),
+                    clientDataJSON: base64url.fromByteArray(response.response.clientDataJSON),
+                },
+                clientExtensionResults,
+            };
         } else {
-            let clientExtensionResults = {};
-
-            try {
-                clientExtensionResults = response.getClientExtensionResults();
-            } catch (e) {
-                console.error('getClientExtensionResults failed', e);
-            }
-
-            if (response.response.attestationObject) {
-                return {
-                    type: response.type,
-                    id: response.id,
-                    response: {
-                        attestationObject: base64url.fromByteArray(response.response.attestationObject),
-                        clientDataJSON: base64url.fromByteArray(response.response.clientDataJSON),
-                    },
-                    clientExtensionResults,
-                };
-            } else {
-                return {
-                    type: response.type,
-                    id: response.id,
-                    response: {
-                        authenticatorData: base64url.fromByteArray(response.response.authenticatorData),
-                        clientDataJSON: base64url.fromByteArray(response.response.clientDataJSON),
-                        signature: base64url.fromByteArray(response.response.signature),
-                        userHandle: response.response.userHandle && base64url.fromByteArray(response.response.userHandle),
-                    },
-                    clientExtensionResults,
-                };
-            }
+            return {
+                type: response.type,
+                id: response.id,
+                response: {
+                    authenticatorData: base64url.fromByteArray(response.response.authenticatorData),
+                    clientDataJSON: base64url.fromByteArray(response.response.clientDataJSON),
+                    signature: base64url.fromByteArray(response.response.signature),
+                    userHandle: response.response.userHandle && base64url.fromByteArray(response.response.userHandle),
+                },
+                clientExtensionResults,
+            };
         }
     }
 
+    
     return {
         decodePublicKeyCredentialCreationOptions,
         decodePublicKeyCredentialRequestOptions,
@@ -212,6 +212,26 @@ function rejectIfNotSuccess(response) {
         return response;
     }
     return new Promise((resolve, reject) => reject(response));
+}
+
+/**
+ * Checks if the browser supports WebAuthn.
+ */
+async function isBrowserSupported(requirePlatformAuthenticator = true) {
+    if (!window.PublicKeyCredential) {
+        console.error("WebAuthn is not supported in this browser.");
+        return false;
+    }
+
+    if (requirePlatformAuthenticator) {
+        try {
+            return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        } catch (error) {
+            console.error("Error checking for platform authenticator:", error);
+            return false;
+        }
+    }
+    return true;
 }
 
 function updateSession(response) {
@@ -256,7 +276,11 @@ function addDeviceAttributeAsRow(name, value) {
 }
 
 function addMessage(message) {
-    $('#messages').html("<p>" + message + "</p>");
+    $('#messages').html(`<p>${message}</p>`);
+}
+
+function clearMessages() {
+    $('#messages').empty();
 }
 
 function addMessages(messages) {
@@ -265,7 +289,7 @@ function addMessages(messages) {
 
 function showJson(name, data) {
     if (data != null) {
-        $('#' + name).text(JSON.stringify(data, false, 4));
+        $(`#${name}`).text(JSON.stringify(data, false, 4));
     }
 }
 
@@ -312,16 +336,17 @@ function resetDisplays() {
     showServerResponse(null);
      */
     hideDeviceInfo();
+    clearMessages()
 }
 
 function getWebAuthnUrls() {
-    let endpoints = {
-        authenticate: "webauthn/authenticate",
-        register: "webauthn/register",
-    }
-    return new Promise((resolve, reject) => resolve(endpoints)).then(data => {
-        return data;
-    });
+    
+    const endpoints = {
+        authenticate: `${window.location.origin}${contextPath}/webauthn/authenticate`,
+        register: `${window.location.origin}${contextPath}/webauthn/register`,
+    };
+    console.log(endpoints);
+    return new Promise((resolve, reject) => resolve(endpoints)).then(data => data);
 }
 
 function getRegisterRequest(urls,
@@ -329,17 +354,21 @@ function getRegisterRequest(urls,
                             displayName,
                             credentialNickname,
                             requireResidentKey = false) {
+    let execution = document.getElementById('execution').value;
+    const headers = {};
+    if (csrfToken !== undefined) {
+        headers["X-CSRF-TOKEN"] = csrfToken;
+    }
     return fetch(urls.register, {
         body: new URLSearchParams({
             username,
             displayName,
             credentialNickname,
             requireResidentKey,
+            execution: execution,
             sessionToken: session.sessionToken || null,
         }),
-        headers: {
-           "X-CSRF-TOKEN": csrfToken
-        },
+        headers: headers,
         method: 'POST',
     })
         .then(response => response.json())
@@ -358,11 +387,13 @@ function submitResponse(url, request, response) {
         sessionToken: request.sessionToken || session.sessionToken || null,
     };
 
+    const headers = {};
+    if (csrfToken !== undefined) {
+        headers["X-CSRF-TOKEN"] = csrfToken;
+    }
     return fetch(url, {
         method: 'POST',
-        headers: {
-            "X-CSRF-TOKEN": csrfToken
-        },
+        headers: headers,
         body: JSON.stringify(body),
     })
         .then(response => response.json())
@@ -419,7 +450,8 @@ function finishCeremony(response) {
     }
     showAuthenticatorResponse(response);
 
-    return submitResponse(urls.finish, request, response)
+    const finishUrl = `${window.location.origin}${contextPath}${urls.finish}`;
+    return submitResponse(finishUrl, request, response)
         .then(data => {
             if (data && data.success) {
                 setStatus(statusStrings.success);
@@ -434,10 +466,16 @@ function finishCeremony(response) {
 function register(username, displayName, credentialNickname, csrfToken,
                   requireResidentKey = false,
                   getRequest = getRegisterRequest) {
+
+    if (!isBrowserSupported()) {
+        addMessage('Web Authentication (WebAuthn) is not supported by this browser.');
+        return rejected('Unsupported browser');
+    }
+
     let request;
     return performCeremony({
         getWebAuthnUrls,
-        getRequest: urls => getRequest(urls, username, displayName, credentialNickname, requireResidentKey),
+        getRequest: urls => getRequest(urls, username, displayName, credentialNickname, requireResidentKey, csrfToken),
         statusStrings: {
             init: 'Initiating registration ceremony with server...',
             authenticatorRequest: 'Asking authenticators to create credential...',
@@ -449,6 +487,8 @@ function register(username, displayName, credentialNickname, csrfToken,
         }
     })
         .then(data => {
+            console.log(`registration data: ${JSON.stringify(data.registration)}`);
+            clearMessages();
             if (data.registration) {
                 const nicknameInfo = {nickname: data.registration.credentialNickname};
 
@@ -464,18 +504,19 @@ function register(username, displayName, credentialNickname, csrfToken,
                 if (!data.attestationTrusted) {
                     addMessage("Attestation cannot be trusted.");
                 } else {
-                    setTimeout(function () {
+                    setTimeout(() => {
                         $('#sessionToken').val(session.sessionToken);
                         console.log("Submitting registration form");
                         $('#form').submit();
-                    }, 1500);
+                    }, 2500);
                 }
             }
         })
         .catch((err) => {
             setStatus('Registration failed.');
             console.error('Registration failed', err);
-
+            clearMessages();
+            
             if (err.name === 'NotAllowedError') {
                 if (request.publicKeyCredentialCreationOptions.excludeCredentials
                     && request.publicKeyCredentialCreationOptions.excludeCredentials.length > 0
@@ -496,11 +537,13 @@ function register(username, displayName, credentialNickname, csrfToken,
 }
 
 function getAuthenticateRequest(urls, username) {
+    const headers = {};
+    if (csrfToken !== undefined) {
+        headers["X-CSRF-TOKEN"] = csrfToken;
+    }
     return fetch(urls.authenticate, {
         body: new URLSearchParams(username ? {username} : {}),
-        headers: {
-            "X-CSRF-TOKEN": csrfToken
-        },
+        headers: headers,
         method: 'POST',
     })
         .then(response => response.json())
@@ -517,7 +560,15 @@ function authenticate(username = null, getRequest = getAuthenticateRequest) {
     $('#deviceTable tbody tr').remove();
     $('#divDeviceInfo').hide();
     hideDeviceInfo();
+    clearMessages();
 
+    if (!isBrowserSupported()) {
+        setStatus(authFailTitle);
+        addMessage('Web Authentication (WebAuthn) is not supported by this browser.');
+        return rejected('Unsupported browser');
+    }
+
+    console.log(`Starting authentication for username ${username}`);
     return performCeremony({
         getWebAuthnUrls,
         getRequest: urls => getRequest(urls, username),
@@ -528,36 +579,57 @@ function authenticate(username = null, getRequest = getAuthenticateRequest) {
         },
         executeRequest: executeAuthenticateRequest,
     }).then(data => {
-        $('#divDeviceInfo').show();
-        console.log("Received: " + JSON.stringify(data));
+        clearMessages();
+        console.log(`Received: ${JSON.stringify(data, undefined, 2)}`);
         if (data.registrations) {
-
+            $('#divDeviceInfo').show();
             data.registrations.forEach(reg => {
 
                 addDeviceAttributeAsRow("Username", reg.username);
                 addDeviceAttributeAsRow("Credential Nickname", reg.credentialNickname);
                 addDeviceAttributeAsRow("Registration Date", reg.registrationTime);
                 addDeviceAttributeAsRow("Session Token", data.sessionToken);
-                addDeviceAttributeAsRow("Device Id", reg.attestationMetadata.deviceProperties.deviceId);
-                addDeviceAttributeAsRow("Device Name", reg.attestationMetadata.deviceProperties.displayName);
+                if (reg.attestationMetadata) {
+                    const deviceProperties = reg.attestationMetadata.deviceProperties;
+                    if (deviceProperties) {
+                        addDeviceAttributeAsRow("Device Id", deviceProperties.deviceId);
+                        addDeviceAttributeAsRow("Device Name", deviceProperties.displayName);
 
-                showDeviceInfo({
-                    "displayName": reg.attestationMetadata.deviceProperties.displayName,
-                    "imageUrl": reg.attestationMetadata.deviceProperties.imageUrl
-                })
+                        showDeviceInfo({
+                            "displayName": deviceProperties.displayName,
+                            "imageUrl": deviceProperties.imageUrl
+                        })
+                    }
+                }
             });
 
             $('#authnButton').hide();
 
-            setTimeout(function () {
+            Swal.fire({
+                icon: "info",
+                title: `Finalizing attempt for ${username}`,
+                text: "Please wait while your authentication attempt is processed...",
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            setTimeout(() => {
                 $('#token').val(data.sessionToken);
-                console.log("Submitting authentication form");
-                $('#webauthnLoginForm').submit();
-            }, 1500);
+                const form = QRCodeAuthentication ? $("#webauthnQRCodeVerifyForm") : $('#webauthnLoginForm');
+                console.log(`Submitting authentication form ${form.serialize()}`);
+                clearMessages();
+                hideDeviceInfo();
+                Swal.close();
+                form.submit();
+            }, 2000);
         }
         return data;
     }).catch((err) => {
         setStatus(authFailTitle);
+        clearMessages();
         if (err.name === 'InvalidStateError') {
             addMessage(`This authenticator is not registered for the account "${username}".`)
         } else if (err.message) {

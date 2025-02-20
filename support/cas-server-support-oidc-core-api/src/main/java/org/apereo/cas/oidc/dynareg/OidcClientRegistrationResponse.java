@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class OidcClientRegistrationResponse implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1436206039117219598L;
 
     @JsonProperty("jwks")
@@ -44,7 +46,7 @@ public class OidcClientRegistrationResponse implements Serializable {
     private String subjectType;
 
     @JsonProperty("grant_types")
-    private List<String> grantTypes = new ArrayList<>(0);
+    private List<String> grantTypes = new ArrayList<>();
 
     @JsonProperty("logo_uri")
     private String logo;
@@ -56,22 +58,22 @@ public class OidcClientRegistrationResponse implements Serializable {
     private String termsOfUseUri;
 
     @JsonProperty("response_types")
-    private List<String> responseTypes = new ArrayList<>(0);
+    private List<String> responseTypes = new ArrayList<>();
 
     @JsonProperty("redirect_uris")
-    private List<String> redirectUris = new ArrayList<>(0);
+    private List<String> redirectUris = new ArrayList<>();
 
     @JsonProperty("userinfo_signed_response_alg")
-    private String userInfoSignedReponseAlg;
+    private String userInfoSignedResponseAlg;
 
     @JsonProperty("userinfo_encrypted_response_alg")
-    private String userInfoEncryptedReponseAlg;
+    private String userInfoEncryptedResponseAlg;
 
     @JsonProperty("userinfo_encrypted_response_enc")
-    private String userInfoEncryptedReponseEncoding;
+    private String userInfoEncryptedResponseEncoding;
 
     @JsonProperty("contacts")
-    private List<String> contacts = new ArrayList<>(0);
+    private List<String> contacts = new ArrayList<>();
 
     @JsonProperty("request_object_signing_alg")
     private String requestObjectSigningAlg;
@@ -87,4 +89,7 @@ public class OidcClientRegistrationResponse implements Serializable {
     
     @JsonProperty("client_secret_expires_at")
     private long clientSecretExpiresAt;
+    
+    @JsonProperty("client_id_issued_at")
+    private long clientIdIssuedAt;
 }

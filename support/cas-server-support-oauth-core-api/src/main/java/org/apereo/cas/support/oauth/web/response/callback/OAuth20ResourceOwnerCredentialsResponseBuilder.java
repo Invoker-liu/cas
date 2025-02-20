@@ -1,19 +1,17 @@
 package org.apereo.cas.support.oauth.web.response.callback;
 
-import org.apereo.cas.configuration.CasConfigurationProperties;
-import org.apereo.cas.services.ServicesManager;
-import org.apereo.cas.support.oauth.OAuth20Constants;
+import org.apereo.cas.audit.AuditActionResolvers;
+import org.apereo.cas.audit.AuditResourceResolvers;
+import org.apereo.cas.audit.AuditableActions;
 import org.apereo.cas.support.oauth.OAuth20GrantTypes;
 import org.apereo.cas.support.oauth.util.OAuth20Utils;
-import org.apereo.cas.support.oauth.web.response.accesstoken.OAuth20TokenGenerator;
-import org.apereo.cas.support.oauth.web.response.accesstoken.ext.AccessTokenRequestDataHolder;
-import org.apereo.cas.support.oauth.web.response.accesstoken.response.OAuth20AccessTokenResponseGenerator;
+import org.apereo.cas.support.oauth.web.endpoints.OAuth20ConfigurationContext;
+import org.apereo.cas.support.oauth.web.response.OAuth20AuthorizationRequest;
+import org.apereo.cas.support.oauth.web.response.accesstoken.OAuth20TokenGeneratedResult;
+import org.apereo.cas.support.oauth.web.response.accesstoken.ext.AccessTokenRequestContext;
 import org.apereo.cas.support.oauth.web.response.accesstoken.response.OAuth20AccessTokenResponseResult;
-import org.apereo.cas.ticket.accesstoken.OAuth20AccessToken;
-
 import lombok.val;
-import org.apache.commons.lang3.StringUtils;
-import org.pac4j.core.context.WebContext;
+import org.apereo.inspektr.audit.annotation.Audit;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
@@ -22,42 +20,42 @@ import org.springframework.web.servlet.ModelAndView;
  * @author Misagh Moayyed
  * @since 5.2.0
  */
-public class OAuth20ResourceOwnerCredentialsResponseBuilder extends BaseOAuth20AuthorizationResponseBuilder {
-    private final OAuth20AccessTokenResponseGenerator accessTokenResponseGenerator;
+public class OAuth20ResourceOwnerCredentialsResponseBuilder<T extends OAuth20ConfigurationContext>
+    extends BaseOAuth20AuthorizationResponseBuilder<T> {
 
-    private final OAuth20TokenGenerator accessTokenGenerator;
-
-    public OAuth20ResourceOwnerCredentialsResponseBuilder(final ServicesManager servicesManager,
-                                                          final CasConfigurationProperties casProperties,
-                                                          final OAuth20AccessTokenResponseGenerator accessTokenResponseGenerator,
-                                                          final OAuth20TokenGenerator accessTokenGenerator,
-                                                          final OAuth20AuthorizationModelAndViewBuilder authorizationModelAndViewBuilder) {
-        super(servicesManager, casProperties, authorizationModelAndViewBuilder);
-        this.accessTokenResponseGenerator = accessTokenResponseGenerator;
-        this.accessTokenGenerator = accessTokenGenerator;
+    public OAuth20ResourceOwnerCredentialsResponseBuilder(
+        final T configurationContext,
+        final OAuth20AuthorizationModelAndViewBuilder authorizationModelAndViewBuilder) {
+        super(configurationContext, authorizationModelAndViewBuilder);
     }
 
     @Override
-    public ModelAndView build(final WebContext context, final String clientId,
-                              final AccessTokenRequestDataHolder holder) {
-        val accessTokenResult = accessTokenGenerator.generate(holder);
+    @Audit(action = AuditableActions.OAUTH2_AUTHORIZATION_RESPONSE,
+        actionResolverName = AuditActionResolvers.OAUTH2_AUTHORIZATION_RESPONSE_ACTION_RESOLVER,
+        resourceResolverName = AuditResourceResolvers.OAUTH2_AUTHORIZATION_RESPONSE_RESOURCE_RESOLVER)
+    public ModelAndView build(final AccessTokenRequestContext holder) throws Throwable {
+        val accessTokenResult = configurationContext.getAccessTokenGenerator().generate(holder);
+        val accessTokenTimeout = determineAccessTokenTimeoutInSeconds(accessTokenResult);
         val result = OAuth20AccessTokenResponseResult.builder()
             .registeredService(holder.getRegisteredService())
             .service(holder.getService())
-            .accessTokenTimeout(accessTokenResult.getAccessToken().map(OAuth20AccessToken::getExpiresIn).orElse(0L))
-            .responseType(OAuth20Utils.getResponseType(context))
-            .casProperties(casProperties)
-            .generatedToken(accessTokenResult)
+            .accessTokenTimeout(accessTokenTimeout)
+            .responseType(holder.getResponseType())
             .grantType(holder.getGrantType())
+            .casProperties(configurationContext.getCasProperties())
+            .generatedToken(accessTokenResult)
+            .userProfile(holder.getUserProfile())
             .build();
-        accessTokenResponseGenerator.generate(context, result);
+        configurationContext.getAccessTokenResponseGenerator().generate(result);
         return new ModelAndView();
     }
 
+    protected Long determineAccessTokenTimeoutInSeconds(final OAuth20TokenGeneratedResult accessTokenResult) {
+        return OAuth20Utils.getAccessTokenTimeout(accessTokenResult);
+    }
+
     @Override
-    public boolean supports(final WebContext context) {
-        val grantType = OAuth20Utils.getRequestParameter(context, OAuth20Constants.GRANT_TYPE)
-            .map(String::valueOf).orElse(StringUtils.EMPTY);
-        return OAuth20Utils.isGrantType(grantType, OAuth20GrantTypes.PASSWORD);
+    public boolean supports(final OAuth20AuthorizationRequest context) {
+        return OAuth20Utils.isGrantType(context.getGrantType(), OAuth20GrantTypes.PASSWORD);
     }
 }

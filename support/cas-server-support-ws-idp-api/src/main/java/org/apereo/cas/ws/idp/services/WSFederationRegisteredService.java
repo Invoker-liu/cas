@@ -1,7 +1,6 @@
 package org.apereo.cas.ws.idp.services;
 
-import org.apereo.cas.services.AbstractRegisteredService;
-import org.apereo.cas.services.RegexRegisteredService;
+import org.apereo.cas.services.BaseWebBasedRegisteredService;
 import org.apereo.cas.ws.idp.WSFederationConstants;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -10,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+
+import java.io.Serial;
 
 /**
  * This is {@link WSFederationRegisteredService}.
@@ -22,10 +23,15 @@ import lombok.ToString;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @ToString(callSuper = true)
-public class WSFederationRegisteredService extends RegexRegisteredService {
+public class WSFederationRegisteredService extends BaseWebBasedRegisteredService {
+    /**
+     * Friendly name for this service.
+     */
+    public static final String FRIENDLY_NAME = "WS Federation Relying Party";
 
+    @Serial
     private static final long serialVersionUID = -3700571300568534062L;
-
+    
     private String realm = WSFederationConstants.REALM_DEFAULT_URI;
 
     private String protocol = WSFederationConstants.WST_NS_05_12;
@@ -49,17 +55,12 @@ public class WSFederationRegisteredService extends RegexRegisteredService {
     @JsonIgnore
     @Override
     public String getFriendlyName() {
-        return "WS Federation Relying Party";
+        return FRIENDLY_NAME;
     }
 
     @JsonIgnore
     @Override
     public int getEvaluationPriority() {
         return 3;
-    }
-
-    @Override
-    protected AbstractRegisteredService newInstance() {
-        return new WSFederationRegisteredService();
     }
 }

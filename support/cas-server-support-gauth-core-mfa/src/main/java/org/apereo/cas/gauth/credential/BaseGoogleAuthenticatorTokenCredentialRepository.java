@@ -8,6 +8,7 @@ import com.warrenstrange.googleauth.IGoogleAuthenticator;
 import lombok.Getter;
 import lombok.val;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
 /**
@@ -18,24 +19,24 @@ import java.util.UUID;
  */
 @Getter
 public abstract class BaseGoogleAuthenticatorTokenCredentialRepository extends BaseOneTimeTokenCredentialRepository {
+    /**
+     * Default bean name.
+     */
+    public static final String BEAN_NAME = "googleAuthenticatorAccountRegistry";
 
     /**
      * Google authenticator token creator.
      */
     protected final IGoogleAuthenticator googleAuthenticator;
 
-    protected BaseGoogleAuthenticatorTokenCredentialRepository(final CipherExecutor<String, String> tokenCredentialCipher,
-                                                               final IGoogleAuthenticator googleAuthenticator) {
-        super(tokenCredentialCipher);
+    protected BaseGoogleAuthenticatorTokenCredentialRepository(
+        final CipherExecutor<String, String> tokenCredentialCipher,
+        final CipherExecutor<Number, Number> scratchCodesCipher,
+        final IGoogleAuthenticator googleAuthenticator) {
+        super(tokenCredentialCipher, scratchCodesCipher);
         this.googleAuthenticator = googleAuthenticator;
     }
 
-    /**
-     * Create one time token account.
-     *
-     * @param username the username
-     * @return the one time token account
-     */
     @Override
     public OneTimeTokenAccount create(final String username) {
         val key = getGoogleAuthenticator().createCredentials();
@@ -43,7 +44,7 @@ public abstract class BaseGoogleAuthenticatorTokenCredentialRepository extends B
             .username(username)
             .secretKey(key.getKey())
             .validationCode(key.getVerificationCode())
-            .scratchCodes(key.getScratchCodes())
+            .scratchCodes(new ArrayList<>(key.getScratchCodes()))
             .name(UUID.randomUUID().toString())
             .build();
     }

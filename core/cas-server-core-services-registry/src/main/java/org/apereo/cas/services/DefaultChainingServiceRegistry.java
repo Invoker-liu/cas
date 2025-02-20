@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -25,25 +26,20 @@ public class DefaultChainingServiceRegistry extends AbstractServiceRegistry impl
     private final List<ServiceRegistry> serviceRegistries;
 
     public DefaultChainingServiceRegistry(final ConfigurableApplicationContext applicationContext) {
-        this(applicationContext, new ArrayList<>(0));
+        this(applicationContext, new ArrayList<>());
     }
 
     public DefaultChainingServiceRegistry(final ConfigurableApplicationContext applicationContext,
                                           final List<ServiceRegistry> serviceRegistries) {
-        super(applicationContext, new ArrayList<>(0));
+        super(applicationContext, new ArrayList<>());
         this.serviceRegistries = serviceRegistries;
-    }
-
-    @Override
-    public void addServiceRegistries(final Collection<ServiceRegistry> registries) {
-        serviceRegistries.addAll(registries);
     }
 
     @Override
     public RegisteredService save(final RegisteredService registeredService) {
         var savedService = (RegisteredService) null;
-        for (var serviceRegistry : serviceRegistries) {
-            var toSave = savedService == null ? registeredService : savedService;
+        for (val serviceRegistry : serviceRegistries) {
+            var toSave = Optional.ofNullable(savedService).orElse(registeredService);
             savedService = serviceRegistry.save(toSave);
         }
         return savedService;
@@ -72,6 +68,15 @@ public class DefaultChainingServiceRegistry extends AbstractServiceRegistry impl
     public RegisteredService findServiceById(final long id) {
         return serviceRegistries.stream()
             .map(registry -> registry.findServiceById(id))
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Override
+    public RegisteredService findServiceBy(final String id) {
+        return serviceRegistries.stream()
+            .map(registry -> registry.findServiceBy(id))
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
@@ -121,6 +126,11 @@ public class DefaultChainingServiceRegistry extends AbstractServiceRegistry impl
     }
 
     @Override
+    public void addServiceRegistries(final Collection<ServiceRegistry> registries) {
+        serviceRegistries.addAll(registries);
+    }
+
+    @Override
     public void synchronize(final RegisteredService service) {
         this.serviceRegistries
             .stream()
@@ -142,15 +152,6 @@ public class DefaultChainingServiceRegistry extends AbstractServiceRegistry impl
                 return true;
             })
             .forEach(serviceRegistry -> serviceRegistry.save(service));
-    }
-
-    @Override
-    public RegisteredService findServiceBy(final String id) {
-        return serviceRegistries.stream()
-            .map(registry -> registry.findServiceBy(id))
-            .filter(Objects::nonNull)
-            .findFirst()
-            .orElse(null);
     }
 
 }

@@ -3,7 +3,6 @@ package org.apereo.cas.qr.web.flow;
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.web.flow.CasWebflowConstants;
 import org.apereo.cas.web.flow.configurer.AbstractCasWebflowConfigurer;
-
 import lombok.val;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
@@ -21,10 +20,10 @@ public class QRAuthenticationWebflowConfigurer extends AbstractCasWebflowConfigu
     static final String STATE_ID_VALIDATE_QR_TOKEN = "validateQRToken";
 
     public QRAuthenticationWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
-        final FlowDefinitionRegistry loginFlowDefinitionRegistry,
-        final ConfigurableApplicationContext applicationContext,
-        final CasConfigurationProperties casProperties) {
-        super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties);
+                                             final FlowDefinitionRegistry flowDefinitionRegistry,
+                                             final ConfigurableApplicationContext applicationContext,
+                                             final CasConfigurationProperties casProperties) {
+        super(flowBuilderServices, flowDefinitionRegistry, applicationContext, casProperties);
     }
 
     @Override
@@ -38,9 +37,9 @@ public class QRAuthenticationWebflowConfigurer extends AbstractCasWebflowConfigu
             val qrSubmission = getState(flow, CasWebflowConstants.STATE_ID_VIEW_LOGIN_FORM);
             createTransitionForState(qrSubmission, CasWebflowConstants.TRANSITION_ID_VALIDATE, STATE_ID_VALIDATE_QR_TOKEN);
 
-            val validateAction = createActionState(flow, STATE_ID_VALIDATE_QR_TOKEN, "qrAuthenticationValidateWebSocketChannelAction");
+            val validateAction = createActionState(flow, STATE_ID_VALIDATE_QR_TOKEN, CasWebflowConstants.ACTION_ID_QR_AUTHENTICATION_VALIDATE_CHANNEL);
             createTransitionForState(validateAction, CasWebflowConstants.TRANSITION_ID_FINALIZE, CasWebflowConstants.STATE_ID_REAL_SUBMIT);
-            state.getEntryActionList().add(createEvaluateAction("qrAuthenticationGenerateCodeAction"));
+            state.getEntryActionList().add(createEvaluateAction(CasWebflowConstants.ACTION_ID_QR_AUTHENTICATION_GENERATE_CODE));
         }
     }
 }
