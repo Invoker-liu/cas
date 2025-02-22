@@ -2,7 +2,6 @@ package org.apereo.cas.web.flow;
 
 import org.apereo.cas.configuration.CasConfigurationProperties;
 import org.apereo.cas.web.flow.configurer.AbstractCasWebflowConfigurer;
-
 import lombok.val;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.webflow.definition.registry.FlowDefinitionRegistry;
@@ -18,15 +17,11 @@ import org.springframework.webflow.engine.builder.support.FlowBuilderServices;
  */
 public class WsFederationWebflowConfigurer extends AbstractCasWebflowConfigurer {
 
-    static final String STATE_ID_WS_FEDERATION_ACTION = "wsFederationAction";
-
-    private static final String WS_FEDERATION_REDIRECT = "wsFederationRedirect";
-
     public WsFederationWebflowConfigurer(final FlowBuilderServices flowBuilderServices,
-                                         final FlowDefinitionRegistry loginFlowDefinitionRegistry,
+                                         final FlowDefinitionRegistry flowDefinitionRegistry,
                                          final ConfigurableApplicationContext applicationContext,
                                          final CasConfigurationProperties casProperties) {
-        super(flowBuilderServices, loginFlowDefinitionRegistry, applicationContext, casProperties);
+        super(flowBuilderServices, flowDefinitionRegistry, applicationContext, casProperties);
     }
 
     @Override
@@ -35,9 +30,10 @@ public class WsFederationWebflowConfigurer extends AbstractCasWebflowConfigurer 
         if (flow != null) {
             createStopWebflowViewState(flow);
 
-            val actionState = createActionState(flow, STATE_ID_WS_FEDERATION_ACTION, STATE_ID_WS_FEDERATION_ACTION);
-            createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_SUCCESS, CasWebflowConstants.STATE_ID_CREATE_TICKET_GRANTING_TICKET);
-            createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_REDIRECT, WS_FEDERATION_REDIRECT);
+            val actionState = createActionState(flow, CasWebflowConstants.STATE_ID_WS_FEDERATION_START, CasWebflowConstants.ACTION_ID_WS_FEDERATION);
+            createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_SUCCESS,
+                CasWebflowConstants.STATE_ID_CREATE_TICKET_GRANTING_TICKET);
+            createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_REDIRECT, CasWebflowConstants.STATE_ID_WS_FEDERATION_REDIRECT);
             createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_GENERATE_SERVICE_TICKET,
                 CasWebflowConstants.STATE_ID_GENERATE_SERVICE_TICKET);
 
@@ -47,6 +43,9 @@ public class WsFederationWebflowConfigurer extends AbstractCasWebflowConfigurer 
             createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_STOP, CasWebflowConstants.STATE_ID_STOP_WEBFLOW);
             createTransitionForState(actionState, CasWebflowConstants.TRANSITION_ID_ERROR, CasWebflowConstants.STATE_ID_STOP_WEBFLOW);
             setStartState(flow, actionState);
+
+            val initLogin = getState(flow, CasWebflowConstants.STATE_ID_INIT_LOGIN_FORM);
+            initLogin.getExitActionList().add(createEvaluateAction(CasWebflowConstants.ACTION_ID_WS_FEDERATION_REDIRECT));
         }
     }
 

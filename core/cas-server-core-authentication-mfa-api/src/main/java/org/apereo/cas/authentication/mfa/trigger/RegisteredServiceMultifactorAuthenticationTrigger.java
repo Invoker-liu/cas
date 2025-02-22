@@ -7,6 +7,7 @@ import org.apereo.cas.authentication.MultifactorAuthenticationTrigger;
 import org.apereo.cas.authentication.MultifactorAuthenticationUtils;
 import org.apereo.cas.authentication.principal.Service;
 import org.apereo.cas.configuration.CasConfigurationProperties;
+import org.apereo.cas.multitenancy.TenantExtractor;
 import org.apereo.cas.services.RegisteredService;
 
 import lombok.Getter;
@@ -18,7 +19,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.Ordered;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.Optional;
 
 /**
@@ -33,8 +36,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class RegisteredServiceMultifactorAuthenticationTrigger implements MultifactorAuthenticationTrigger {
     private final CasConfigurationProperties casProperties;
+
     private final MultifactorAuthenticationProviderSelector multifactorAuthenticationProviderSelector;
+
     private final ConfigurableApplicationContext applicationContext;
+
+    private final TenantExtractor tenantExtractor;
     
     private int order = Ordered.LOWEST_PRECEDENCE;
 
@@ -42,13 +49,14 @@ public class RegisteredServiceMultifactorAuthenticationTrigger implements Multif
     public Optional<MultifactorAuthenticationProvider> isActivated(final Authentication authentication,
                                                                    final RegisteredService registeredService,
                                                                    final HttpServletRequest httpServletRequest,
-                                                                   final Service service) {
+                                                                   final HttpServletResponse response,
+                                                                   final Service service) throws Throwable {
         if (registeredService == null || authentication == null) {
             LOGGER.debug("No service or authentication is available to determine event for principal");
             return Optional.empty();
         }
 
-        val policy = registeredService.getMultifactorPolicy();
+        val policy = registeredService.getMultifactorAuthenticationPolicy();
         if (policy == null || policy.getMultifactorAuthenticationProviders().isEmpty()) {
             LOGGER.trace("Authentication policy does not contain any multifactor authentication providers");
             return Optional.empty();
@@ -60,7 +68,7 @@ public class RegisteredServiceMultifactorAuthenticationTrigger implements Multif
                 registeredService.getServiceId());
             return Optional.empty();
         }
-                                                    
+
         val principal = authentication.getPrincipal();
         val providers = MultifactorAuthenticationUtils.getMultifactorAuthenticationProviderForService(registeredService, applicationContext);
         if (providers != null && !providers.isEmpty()) {

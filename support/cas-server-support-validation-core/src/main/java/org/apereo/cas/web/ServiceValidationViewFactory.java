@@ -11,8 +11,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.View;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -24,6 +25,11 @@ import java.util.function.Function;
  */
 public class ServiceValidationViewFactory {
 
+    /**
+     * Default bean name.
+     */
+    public static final String BEAN_NAME = "serviceValidationViewFactory";
+    
     /**
      * The Registered views.
      */
@@ -170,8 +176,8 @@ public class ServiceValidationViewFactory {
                                                                     final WebApplicationService service) {
         val format = request.getParameter(CasProtocolConstants.PARAMETER_FORMAT);
         final Function<String, ValidationResponseType> func = FunctionUtils.doIf(StringUtils::isNotBlank,
-            t -> ValidationResponseType.valueOf(t.toUpperCase()),
-            f -> service != null ? service.getFormat() : ValidationResponseType.XML);
+            t -> ValidationResponseType.valueOf(t.toUpperCase(Locale.ENGLISH)),
+            __ -> service != null ? service.getFormat() : ValidationResponseType.XML);
         return func.apply(format);
     }
 }

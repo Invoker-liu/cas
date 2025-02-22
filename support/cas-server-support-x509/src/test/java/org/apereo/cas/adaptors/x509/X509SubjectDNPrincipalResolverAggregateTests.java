@@ -3,11 +3,13 @@ package org.apereo.cas.adaptors.x509;
 import org.apereo.cas.adaptors.x509.authentication.CasX509Certificate;
 import org.apereo.cas.adaptors.x509.authentication.principal.X509CertificateCredential;
 import org.apereo.cas.authentication.AuthenticationManager;
-import org.apereo.cas.authentication.DefaultAuthenticationTransactionFactory;
+import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.test.CasTestExtension;
 
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,19 +32,20 @@ import static org.junit.jupiter.api.Assertions.*;
         "cas.authn.attribute-repository.core.merger=MULTIVALUED"
     })
 @Tag("X509")
-public class X509SubjectDNPrincipalResolverAggregateTests {
+@ExtendWith(CasTestExtension.class)
+class X509SubjectDNPrincipalResolverAggregateTests {
     private static final CasX509Certificate VALID_CERTIFICATE = new CasX509Certificate(true);
 
     @Autowired
-    @Qualifier("casAuthenticationManager")
+    @Qualifier(AuthenticationManager.BEAN_NAME)
     private AuthenticationManager authenticationManager;
 
     @Test
-    public void verifyResolverAsAggregate() {
+    void verifyResolverAsAggregate() throws Throwable {
         val c = new X509CertificateCredential(new X509Certificate[]{VALID_CERTIFICATE});
         c.setCertificate(VALID_CERTIFICATE);
         val result = authenticationManager.authenticate(
-            new DefaultAuthenticationTransactionFactory().newTransaction(c));
+            CoreAuthenticationTestUtils.getAuthenticationTransactionFactory().newTransaction(c));
         assertNotNull(result);
         val attributes = result.getPrincipal().getAttributes();
         assertTrue(attributes.containsKey("subjectX500Principal"));

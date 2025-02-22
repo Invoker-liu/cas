@@ -1,5 +1,7 @@
 package org.apereo.cas.interrupt;
 
+import org.apereo.cas.util.spring.beans.BeanSupplier;
+
 import lombok.Getter;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
@@ -14,11 +16,13 @@ import java.util.List;
  */
 @Getter
 public class DefaultInterruptInquiryExecutionPlan implements InterruptInquiryExecutionPlan {
-    private final List<InterruptInquirer> interruptInquirers = new ArrayList<>(0);
+    private final List<InterruptInquirer> interruptInquirers = new ArrayList<>();
 
     @Override
     public void registerInterruptInquirer(final InterruptInquirer inquirer) {
-        interruptInquirers.add(inquirer);
+        if (BeanSupplier.isNotProxy(inquirer)) {
+            interruptInquirers.add(inquirer);
+        }
     }
 
     @Override

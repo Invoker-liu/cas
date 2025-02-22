@@ -1,0 +1,24 @@
+services:
+  httpbin-http:
+    container_name: "httpbin-http"
+    image: kennethreitz/httpbin
+    ports:
+      - "9889:80"
+  httpbin-https:
+    image: fsouza/docker-ssl-proxy
+    container_name: "httpbin-https"
+    environment:
+      DOMAIN: localhost
+      TARGET_HOST: httpbin-http
+    links:
+      - "httpbin-http"
+    ports:
+      - "9859:443"
+  request-baskets:
+    image: darklynx/request-baskets
+    ports:
+      - "56789:55555"
+    environment:
+      MODE: public
+      BASKET: cas
+      TOKEN: "SV00cPIKRdWjGkN1vkbEbPdhtvV5vIJ0ajygcdnZVBgl"

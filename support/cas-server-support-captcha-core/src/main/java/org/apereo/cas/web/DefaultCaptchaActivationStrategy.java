@@ -1,9 +1,10 @@
 package org.apereo.cas.web;
 
 import org.apereo.cas.configuration.model.support.captcha.GoogleRecaptchaProperties;
-import org.apereo.cas.services.RegisteredServiceProperty;
+import org.apereo.cas.services.RegisteredServiceProperty.RegisteredServiceProperties;
 import org.apereo.cas.services.ServicesManager;
 import org.apereo.cas.util.RegexUtils;
+import org.apereo.cas.util.spring.SpringExpressionLanguageValueResolver;
 import org.apereo.cas.web.support.WebUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,9 @@ import org.apereo.inspektr.common.web.ClientInfo;
 import org.apereo.inspektr.common.web.ClientInfoHolder;
 import org.springframework.webflow.execution.RequestContext;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * This is {@link DefaultCaptchaActivationStrategy}.
@@ -37,9 +40,20 @@ public class DefaultCaptchaActivationStrategy implements CaptchaActivationStrate
                                                               final GoogleRecaptchaProperties properties) {
         val service = WebUtils.getService(requestContext);
         val registeredService = servicesManager.findServiceBy(service);
-        if (RegisteredServiceProperty.RegisteredServiceProperties.CAPTCHA_ENABLED.isAssignedTo(registeredService)) {
+
+        if (RegisteredServiceProperties.CAPTCHA_ENABLED.isAssignedTo(registeredService)) {
             LOGGER.trace("Checking for activation of captcha defined for service [{}]", registeredService);
-            val result = RegisteredServiceProperty.RegisteredServiceProperties.CAPTCHA_ENABLED.getPropertyBooleanValue(registeredService);
+
+            if (RegisteredServiceProperties.CAPTCHA_IP_ADDRESS_PATTERN.isAssignedTo(registeredService)) {
+                val ip = Optional.ofNullable(ClientInfoHolder.getClientInfo())
+                    .map(ClientInfo::getClientIpAddress).orElse(StringUtils.EMPTY).trim();
+                LOGGER.trace("Checking for activation of captcha defined for service [{}] based on IP address [{}]", registeredService, ip);
+                val ipPattern = RegisteredServiceProperties.CAPTCHA_IP_ADDRESS_PATTERN.getPropertyValues(registeredService, Set.class);
+                val result = Objects.requireNonNull(ipPattern).stream().anyMatch(pattern -> RegexUtils.find(pattern.toString().trim(), ip));
+                return evaluateResult(result, properties);
+            }
+
+            val result = RegisteredServiceProperties.CAPTCHA_ENABLED.getPropertyBooleanValue(registeredService);
             return evaluateResult(result, properties);
         }
 
@@ -50,8 +64,8 @@ public class DefaultCaptchaActivationStrategy implements CaptchaActivationStrate
             val activate = RegexUtils.find(properties.getActivateForIpAddressPattern(), ip);
             return evaluateResult(activate, properties);
         }
-
-        LOGGER.trace("Checking for activation of captcha defined under site key [{}]", properties.getSiteKey());
+        val siteKey = SpringExpressionLanguageValueResolver.getInstance().resolve(properties.getSiteKey());
+        LOGGER.trace("Checking for activation of captcha defined under site key [{}]", siteKey);
         return evaluateResult(properties.isEnabled(), properties);
     }
 }
