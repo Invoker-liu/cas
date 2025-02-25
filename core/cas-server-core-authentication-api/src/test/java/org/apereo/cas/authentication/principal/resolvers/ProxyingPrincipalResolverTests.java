@@ -1,12 +1,12 @@
 package org.apereo.cas.authentication.principal.resolvers;
 
 import org.apereo.cas.authentication.CoreAuthenticationTestUtils;
+import org.apereo.cas.authentication.credential.HttpBasedServiceCredential;
 import org.apereo.cas.authentication.principal.PrincipalFactoryUtils;
-
 import lombok.val;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
+import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -16,13 +16,20 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 6.2.0
  */
 @Tag("Authentication")
-public class ProxyingPrincipalResolverTests {
+class ProxyingPrincipalResolverTests {
     @Test
-    public void verifyOperation() {
+    void verifyOperation() throws Throwable {
         val resolver = new ProxyingPrincipalResolver(PrincipalFactoryUtils.newPrincipalFactory());
-        val credential = CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword();
-        assertTrue(resolver.supports(credential));
+        assertFalse(resolver.supports(CoreAuthenticationTestUtils.getCredentialsWithSameUsernameAndPassword()));
         assertNull(resolver.getAttributeRepository());
-        assertNotNull(resolver.resolve(credential));
+        val credential = new HttpBasedServiceCredential("https://example.org", CoreAuthenticationTestUtils.getRegisteredService());
+        var principal = resolver.resolve(credential);
+        assertEquals(credential.getId(), principal.getId());
+        principal = resolver.resolve(credential,
+            Optional.of(CoreAuthenticationTestUtils.getPrincipal("helloworld")),
+            Optional.empty(), Optional.empty());
+        assertEquals("helloworld", principal.getId());
+        assertTrue(principal.containsAttribute(HttpBasedServiceCredential.class.getName()));
+        assertTrue(credential.getCredentialMetadata().containsProperty(HttpBasedServiceCredential.class.getName()));
     }
 }

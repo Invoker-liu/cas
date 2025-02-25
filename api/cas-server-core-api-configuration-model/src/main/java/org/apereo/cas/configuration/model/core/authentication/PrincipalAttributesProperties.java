@@ -1,19 +1,20 @@
 package org.apereo.cas.configuration.model.core.authentication;
 
 import org.apereo.cas.configuration.model.support.azuread.AzureActiveDirectoryAttributesProperties;
-import org.apereo.cas.configuration.model.support.couchbase.authentication.CouchbasePrincipalAttributesProperties;
 import org.apereo.cas.configuration.model.support.jdbc.JdbcPrincipalAttributesProperties;
 import org.apereo.cas.configuration.model.support.ldap.LdapPrincipalAttributesProperties;
 import org.apereo.cas.configuration.model.support.okta.OktaPrincipalAttributesProperties;
 import org.apereo.cas.configuration.model.support.redis.RedisPrincipalAttributesProperties;
+import org.apereo.cas.configuration.model.support.scim.ScimPrincipalAttributesProperties;
+import org.apereo.cas.configuration.model.support.syncope.SyncopePrincipalAttributesProperties;
 import org.apereo.cas.configuration.support.RequiresModule;
 
-import com.fasterxml.jackson.annotation.JsonFilter;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,11 +42,12 @@ import java.util.List;
 @Getter
 @Setter
 @Accessors(chain = true)
-@JsonFilter("PrincipalAttributesProperties")
+
 public class PrincipalAttributesProperties implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = -4515569588579072890L;
-    
+
     /**
      * Attribute resolution core/common settings.
      */
@@ -55,50 +57,42 @@ public class PrincipalAttributesProperties implements Serializable {
     /**
      * Retrieve attributes from multiple JDBC repositories.
      */
-    private List<JdbcPrincipalAttributesProperties> jdbc = new ArrayList<>(0);
+    private List<JdbcPrincipalAttributesProperties> jdbc = new ArrayList<>();
 
     /**
      * Retrieve attributes from multiple Microsoft Graph instances.
      */
-    private List<AzureActiveDirectoryAttributesProperties> azureActiveDirectory = new ArrayList<>(0);
+    private List<AzureActiveDirectoryAttributesProperties> azureActiveDirectory = new ArrayList<>();
 
     /**
      * Retrieve attributes from multiple REST endpoints.
      */
-    private List<RestPrincipalAttributesProperties> rest = new ArrayList<>(0);
+    private List<RestPrincipalAttributesProperties> rest = new ArrayList<>();
 
     /**
      * Retrieve attributes from multiple Groovy scripts.
      */
-    private List<GroovyPrincipalAttributesProperties> groovy = new ArrayList<>(0);
+    private List<GroovyPrincipalAttributesProperties> groovy = new ArrayList<>();
 
     /**
      * Retrieve attributes from multiple LDAP servers.
      */
-    private List<LdapPrincipalAttributesProperties> ldap = new ArrayList<>(0);
+    private List<LdapPrincipalAttributesProperties> ldap = new ArrayList<>();
 
     /**
      * Retrieve attributes from multiple JSON file repositories.
      */
-    private List<JsonPrincipalAttributesProperties> json = new ArrayList<>(0);
+    private List<JsonPrincipalAttributesProperties> json = new ArrayList<>();
 
     /**
      * Retrieve attributes from redis repositories.
      */
-    private List<RedisPrincipalAttributesProperties> redis = new ArrayList<>(0);
+    private List<RedisPrincipalAttributesProperties> redis = new ArrayList<>();
 
     /**
-     * Retrieve attributes from Couchbase repositories.
+     * Retrieve attributes from SCIM servers.
      */
-    @NestedConfigurationProperty
-    private CouchbasePrincipalAttributesProperties couchbase = new CouchbasePrincipalAttributesProperties();
-
-    /**
-     * Retrieve attributes from multiple scripted repositories.
-     * @deprecated Since 6.2
-     */
-    @Deprecated(since = "6.2")
-    private List<ScriptedPrincipalAttributesProperties> script = new ArrayList<>(0);
+    private List<ScimPrincipalAttributesProperties> scim = new ArrayList<>();
 
     /**
      * Use stubbed attribute definitions as the underlying attribute repository source.
@@ -132,4 +126,10 @@ public class PrincipalAttributesProperties implements Serializable {
      */
     @NestedConfigurationProperty
     private OktaPrincipalAttributesProperties okta = new OktaPrincipalAttributesProperties();
+
+    /**
+     * Fetch user attributes from Apache Syncope.
+     */
+    @NestedConfigurationProperty
+    private SyncopePrincipalAttributesProperties syncope = new SyncopePrincipalAttributesProperties();
 }

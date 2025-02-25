@@ -15,6 +15,10 @@ import java.util.Collection;
  * @since 5.1.0
  */
 public interface LogoutExecutionPlan {
+    /**
+     * Default implementation bean name.
+     */
+    String BEAN_NAME = "logoutExecutionPlan";
 
     /**
      * Register logout handler.
@@ -46,11 +50,11 @@ public interface LogoutExecutionPlan {
      * @return the logout handlers
      */
     default Collection<LogoutPostProcessor> getLogoutPostProcessors() {
-        return new ArrayList<>(0);
+        return new ArrayList<>();
     }
 
     default Collection<LogoutRedirectionStrategy> getLogoutRedirectionStrategies() {
-        return new ArrayList<>(0);
+        return new ArrayList<>();
     }
 
     /**
@@ -59,6 +63,6 @@ public interface LogoutExecutionPlan {
      * @return the single logout service message handlers
      */
     default Collection<SingleLogoutServiceMessageHandler> getSingleLogoutServiceMessageHandlers() {
-        return new ArrayList<>(0);
+        return new ArrayList<>();
     }
 }

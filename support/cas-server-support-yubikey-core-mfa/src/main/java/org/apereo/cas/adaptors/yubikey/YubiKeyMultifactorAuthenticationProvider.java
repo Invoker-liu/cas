@@ -6,7 +6,8 @@ import org.apereo.cas.services.RegisteredService;
 import org.apereo.cas.util.EncodingUtils;
 import org.apereo.cas.util.LoggingUtils;
 import org.apereo.cas.util.http.HttpClient;
-import org.apereo.cas.util.http.HttpMessage;
+import org.apereo.cas.web.HttpMessage;
+
 
 import com.yubico.client.v2.YubicoClient;
 import lombok.AllArgsConstructor;
@@ -15,7 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
 
-import java.net.URL;
+import java.io.Serial;
+import java.net.URI;
 import java.util.Optional;
 
 /**
@@ -29,6 +31,7 @@ import java.util.Optional;
 @NoArgsConstructor
 public class YubiKeyMultifactorAuthenticationProvider extends AbstractMultifactorAuthenticationProvider {
 
+    @Serial
     private static final long serialVersionUID = 4789727148634156909L;
 
     private transient YubicoClient client;
@@ -51,7 +54,7 @@ public class YubiKeyMultifactorAuthenticationProvider extends AbstractMultifacto
             val endpoints = client.getWsapiUrls();
             for (val endpoint : endpoints) {
                 LOGGER.debug("Pinging YubiKey API endpoint at [{}]", endpoint);
-                val msg = this.httpClient.sendMessageToEndPoint(new URL(endpoint));
+                val msg = httpClient.sendMessageToEndPoint(new URI(endpoint).toURL());
                 val message = Optional.ofNullable(msg).map(HttpMessage::getMessage).orElse(null);
                 if (StringUtils.isNotBlank(message)) {
                     val response = EncodingUtils.urlDecode(message);

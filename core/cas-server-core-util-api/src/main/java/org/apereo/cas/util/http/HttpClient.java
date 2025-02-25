@@ -1,5 +1,6 @@
 package org.apereo.cas.util.http;
 
+import org.apereo.cas.web.HttpMessage;
 import java.net.URL;
 
 /**
@@ -10,6 +11,21 @@ import java.net.URL;
  * @since 4.0.0
  */
 public interface HttpClient {
+
+    /**
+     * Bean name for the client implementation that supports CAS trust store.
+     */
+    String BEAN_NAME_HTTPCLIENT_TRUST_STORE = "supportsTrustStoreSslSocketFactoryHttpClient";
+
+    /**
+     * Bean name for the client implementation that does not follow redirects.
+     */
+    String BEAN_NAME_HTTPCLIENT_NO_REDIRECT = "noRedirectHttpClient";
+
+    /**
+     * Bean name for the default client implementation.
+     */
+    String BEAN_NAME_HTTPCLIENT = "httpClient";
 
     /**
      * Sends a message to a particular endpoint.  Option of sending it without
@@ -51,12 +67,12 @@ public interface HttpClient {
      *
      * @return the wrapped http client
      */
-    org.apache.http.client.HttpClient getWrappedHttpClient();
+    org.apache.hc.client5.http.classic.HttpClient wrappedHttpClient();
 
     /**
      * Gets http client factory.
      *
      * @return the http client factory
      */
-    HttpClientFactory getHttpClientFactory();
+    HttpClientFactory httpClientFactory();
 }

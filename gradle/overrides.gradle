@@ -1,120 +1,188 @@
-configurations.all {
+configurations.configureEach {
     resolutionStrategy {
-        if (!providers.systemProperty("skipVersionConflict").forUseAtConfigurationTime().present) {
+        capabilitiesResolution {
+            withCapability("com.google.collections:google-collections") {
+                selectHighestVersion()
+            }
+        }
+
+        if (!providers.systemProperty("skipVersionConflict").present) {
             failOnVersionConflict()
         }
         preferProjectModules()
+        
+        def dependencyCacheDays = Integer.valueOf(providers.systemProperty("dependencyCacheDays").getOrElse("1"))
+        cacheDynamicVersionsFor dependencyCacheDays, 'days'
+        cacheChangingModulesFor dependencyCacheDays, 'days'
 
-        cacheDynamicVersionsFor 0, 'days'
-        cacheChangingModulesFor 0, 'days'
-
-        def dependencyUpdates = gradle.startParameter.taskNames.any {task -> task.equalsIgnoreCase('dependencyUpdates') }
+        def dependencyUpdates = gradle.startParameter.taskNames.any { task -> task.equalsIgnoreCase('dependencyUpdates') }
         if (!dependencyUpdates) {
             eachDependency { DependencyResolveDetails details ->
                 def requested = details.requested
-                if (requested.group == "gnu-getopt")  {
-                    details.useTarget group: "gnu.getopt", name: "java-getopt", version: details.requested.version
+                if (requested.group == "org.bouncycastle") {
+                    if (requested.name != "bcprov-ext-jdk18on") {
+                        details.useVersion(libs.bcprov.jdk18on.get().version)
+                    }
                 }
-                if (requested.group == "org.opensaml")  {
-                    details.useVersion("${opensamlVersion}")
+                if (requested.group == "gnu-getopt") {
+                    details.useTarget group: "gnu.getopt", name: "java-getopt", version: requested.version
                 }
-                if (requested.group == "com.h2database")  {
-                    details.useVersion("${h2Version}")
+                if (requested.group == "com.google.guava" && requested.name == "guava") {
+                    details.useVersion(libs.guava.get().version)
                 }
-                if (requested.group == "org.hibernate")  {
-                    details.useVersion("${hibernateVersion}")
+                if (requested.group == "org.opensaml") {
+                    details.useVersion(libs.opensaml.core.api.get().version)
                 }
-                if (requested.group == "org.postgresql")  {
-                    details.useVersion("${postgresqlVersion}")
+                if (requested.group == "org.springframework.amqp") {
+                    details.useVersion(libs.spring.rabbit.get().version)
                 }
-                if (requested.group == "com.hazelcast" && requested.name == "hazelcast")  {
-                    details.useVersion("${hazelcastVersion}")
+                if (requested.group == "jakarta.activation") {
+                    details.useVersion(libs.jakarta.activation.api.get().version)
                 }
-                if (requested.group == "org.infinispan")  {
-                    details.useVersion("${infinispanVersion}")
+                if (requested.group == "com.h2database") {
+                    details.useVersion(libs.h2.get().version)
                 }
-                if (requested.group == "org.springframework")  {
-                    details.useVersion("${springVersion}")
+                if (requested.group == "com.google.code.gson") {
+                    details.useVersion(libs.gson.get().version)
                 }
-                if (requested.group == "org.springframework.session")  {
+                if (requested.name == "hibernate-validator") {
+                    details.useVersion(libs.hibernate.validator.get().version)
+                }
+                if (requested.name == "commons-lang3") {
+                    details.useVersion(libs.commons.lang3.get().version)
+                }
+                if (requested.group == "org.hibernate.orm") {
+                    details.useVersion(libs.hibernate.core.get().version)
+                }
+                if (requested.group == "com.squareup.okhttp3") {
+                    details.useVersion(libs.okhttp3.get().version)
+                }
+                if (requested.group == "org.postgresql") {
+                    details.useVersion(libs.postgresql.get().version)
+                }
+                if (requested.group == "com.hazelcast" && requested.name == "hazelcast") {
+                    details.useVersion(libs.hazelcast.sdk.get().version)
+                }
+                if (requested.group == "org.pac4j" && requested.name.startsWith("pac4j-")) {
+                    details.useVersion(libs.pac4j.core.get().version)
+                }
+                if (requested.group == "org.springframework") {
+                    details.useVersion(libs.spring.core.get().version)
+                }
+                if (requested.group == "io.github.classgraph") {
+                    details.useVersion(libs.classgraph.get().version)
+                }
+                if (requested.group == "org.eclipse.angus" && requested.name.contains("mail")) {
+                    details.useVersion(libs.jakarta.mail.get().version)
+                }
+                if (requested.group == "org.springframework.session") {
                     if (requested.name == "spring-session-data-mongodb") {
-                        details.useVersion("${springSessionMongoVersion}")
+                        details.useVersion(libs.spring.session.data.mongodb.get().version)
                     } else {
-                        details.useVersion("${springSessionVersion}")
+                        details.useVersion(libs.spring.session.core.get().version)
                     }
                 }
-                if (requested.group == "org.apache.tomcat")  {
-                    details.useVersion("${tomcatVersion}")
+                if (requested.group.startsWith("org.eclipse.jetty")) {
+                    details.useVersion(libs.versions.jetty.get())
                 }
-                if (requested.group == "org.hsqldb")  {
-                    details.useVersion("${hsqlVersion}")
+                if (requested.group.startsWith("io.undertow")) {
+                    details.useVersion(libs.versions.undertow.get())
                 }
-                if (requested.group == "org.mariadb.jdbc")  {
-                    details.useVersion("${mariaDbVersion}")
+                if (requested.group.startsWith("org.apache.tomcat")) {
+                    details.useVersion(libs.versions.tomcat.get())
                 }
-                if (requested.group == "com.microsoft.sqlserver")  {
-                    details.useVersion("${mssqlServerVersion}")
+                if (requested.group == "org.hsqldb") {
+                    details.useVersion(libs.hsqldb.get().version)
                 }
-                if (requested.group == "com.oracle.ojdbc:ojdbc10")  {
-                    details.useVersion("${oracleJdbcVersion}")
+                if (requested.group == "org.mariadb.jdbc") {
+                    details.useVersion(libs.mariadb.java.client.get().version)
                 }
-                if (requested.group == "org.mongodb")  {
-                    details.useVersion("${mongoDriverVersion}")
+                if (requested.group == "com.microsoft.sqlserver") {
+                    details.useVersion(libs.mssql.jdbc.get().version)
                 }
-                if (requested.group == "mysql")  {
-                    details.useVersion("${mysqlVersion}")
+                if (requested.group == "com.oracle.database.jdbc") {
+                    details.useVersion(libs.ojdbc11.get().version)
                 }
-                if (requested.group == "net.sourceforge.jtds")  {
-                    details.useVersion("${jtdsVersion}")
-                }
-                if (requested.group == "com.couchbase.client" && details.requested.name == "java-client")  {
-                    details.useVersion("${couchbaseVersion}")
-                }
-                if (requested.group == "com.github.ben-manes.caffeine")  {
-                    details.useVersion("${caffeineVersion}")
-                }
-                if (requested.group == "org.apache.logging.log4j")  {
-                    details.useVersion("${log4jVersion}")
-                }
-                if (requested.group == "org.codehaus.groovy")  {
-                    details.useVersion("${groovyVersion}")
-                }
-                if (requested.group == "com.zaxxer")  {
-                    details.useVersion("${hikariVersion}")
-                }
-                if (requested.group == "org.thymeleaf")  {
-                    details.useVersion("${thymeleafVersion}")
-                }
-                if (requested.group == "nz.net.ultraq.thymeleaf" && requested.name == "thymeleaf-layout-dialect")  {
-                    details.useVersion("${thymeleafDialectVersion}")
-                }
-                if (requested.group == "commons-beanutils" && requested.name == "commons-beanutils")  {
-                    details.useVersion("${commonsBeansVersion}")
-                }
-                if (requested.group == "ch.qos.logback")  {
-                    details.useVersion("${logbackVersion}")
-                }
-                if (requested.group == "org.apache.httpcomponents")  {
-                    if (details.requested.name == "httpcore") {
-                        details.useVersion("${httpCoreVersion}")
-                    } else {
-                        details.useVersion("${httpclientVersion}")
+                if (requested.group == "io.netty") {
+                    if (!requested.name.startsWith("netty-tcnative")) {
+                        details.useVersion(libs.netty.common.get().version)
                     }
                 }
-                if (requested.group.startsWith("com.fasterxml.jackson"))  {
-                    details.useVersion("${jacksonVersion}")
+                if (requested.group == "org.apache.kafka") {
+                    details.useVersion(libs.kafka.clients.get().version)
                 }
-                if (requested.group == "io.micrometer")  {
-                    details.useVersion("${micrometerVersion}")
+                if (requested.group == "org.mongodb") {
+                    details.useVersion(libs.mongodb.driver.core.get().version)
                 }
-                if (requested.group == "com.timgroup")  {
-                    details.useVersion("${statsdVersion}")
+                if (requested.group == "mysql") {
+                    details.useVersion(libs.mysql.connectorj.get().version)
                 }
-                if (requested.group == "com.signalfx.public")  {
-                    details.useVersion("${signalFxVersion}")
+                if (requested.group == "net.sourceforge.jtds") {
+                    details.useVersion(libs.jtds.get().version)
                 }
-                if (requested.group == "org.apache.wss4j")  {
-                    details.useVersion("${wss4jVersion}")
+                if (requested.group == "com.github.ben-manes.caffeine") {
+                    details.useVersion(libs.caffeine.get().version)
+                }
+                if (requested.group == "org.apache.logging.log4j") {
+                    details.useVersion(libs.log4j.core.get().version)
+                }
+                if (requested.group == "org.apache.groovy") {
+                    details.useVersion(libs.apachegroovy.core.get().version)
+                }
+                if (requested.group == "org.apache.cxf") {
+                    details.useVersion(libs.cxf.rt.transports.http.get().version)
+                }
+                if (requested.group == "com.zaxxer") {
+                    details.useVersion(libs.hikaricp.get().version)
+                }
+                if (requested.group == "org.thymeleaf") {
+                    details.useVersion(libs.thymeleafsdk.get().version)
+                }
+                if (requested.group == "com.github.zhanhb" && requested.name == "thymeleaf-layout-dialect") {
+                    details.useVersion(libs.thymeleaf.layout.dialect.get().version)
+                }
+                if (requested.group == "commons-beanutils" && requested.name == "commons-beanutils") {
+                    details.useVersion(libs.commons.beanutils.get().version)
+                }
+                if (requested.group == "ch.qos.logback") {
+                    if (requested.name == "logback-access") {
+                        details.useVersion(libs.logback.access.get().version)
+                    } else {
+                        details.useVersion(libs.logback.core.get().version)
+                    }
+                }
+                if (requested.group.startsWith("jakarta.xml.bind")) {
+                    details.useVersion(libs.jakarta.xml.bind.api.get().version)
+                }
+                if (requested.name == "jakarta.servlet.jsp.jstl-api") {
+                    details.useVersion(libs.jakarta.servlet.jsp.jstl.api.get().version)
+                } else if (requested.group.startsWith("jakarta.servlet")) {
+                    details.useVersion(libs.jakarta.servlet.api.get().version)
+                }
+                if (requested.group == "org.apache.httpcomponents.client5") {
+                    details.useVersion(libs.httpclient5.get().version)
+                }
+                if (requested.group == "org.apache.httpcomponents.core5") {
+                    details.useVersion(libs.httpcore5.get().version)
+                }
+                if (requested.group.startsWith("com.fasterxml.jackson")) {
+                    details.useVersion(libs.jacksoncore.get().version)
+                }
+                if (requested.group == "io.micrometer" && requested.name.startsWith("micrometer-")) {
+                    if (requested.name.contains("tracing")) {
+                        details.useVersion(libs.micrometer.tracing.bridge.otel.get().version)
+                    } else {
+                        details.useVersion(libs.micrometer.core.get().version)
+                    }
+                }
+                if (requested.group == "org.apache.wss4j") {
+                    details.useVersion(libs.wss4j.bindings.get().version)
+                }
+                if (requested.group == "org.slf4j") {
+                    details.useVersion(libs.slf4j.api.get().version)
+                }
+                if (requested.group == "org.apache.logging.log4j") {
+                    details.useVersion(libs.log4j.core.get().version)
                 }
             }
         }
@@ -127,33 +195,15 @@ configurations.all {
     exclude(group: "org.apache.logging.log4j", module: "log4j-to-slf4j")
     exclude(group: "pull-parser", module: "pull-parser")
     exclude(group: "javax.servlet", module: "servlet-api")
+    exclude(group: "javax.ws.rs", module: "javax.ws.rs-api")
+    exclude(group: "javax.annotation", module: "javax.annotation-api")
+    exclude(group: "javax.activation", module: "activation")
+    exclude group: "com.sun.activation", module: "jakarta.activation"
     exclude(group: "commons-logging", module: "commons-logging")
+    exclude(group: "com.fasterxml.jackson.module", module: "jackson-module-jaxb-annotations")
+    exclude(group: "org.bouncycastle", module: "bcprov-ext-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+    
+    exclude(group: "io.netty", module: "netty-transport-native-kqueue")
 }
-
-ext["couchbase-client.version"] = ext["couchbaseVersion"]
-ext["caffeine.version"] = ext["caffeineVersion"]
-ext["commons-beanutils.version"] = ext["commonsBeansVersion"]
-ext["hazelcast.version"] = ext["hazelcastVersion"]
-ext["hibernate.version"] = ext["hibernateVersion"]
-ext["tomcat.version"] = ext["tomcatVersion"]
-ext["infinispan.version"] = ext["infinispanVersion"]
-ext["h2.version"] = ext["h2Version"]
-ext["spring.version"] = ext["springVersion"]
-ext["jackson.version"] = ext["jacksonVersion"]
-ext["thymeleaf.version"] = ext["thymeleafVersion"]
-ext["thymeleaf-layout-dialect.version"] = ext["thymeleafDialectVersion"]
-ext["hsqldb.version"] = ext["hsqlVersion"]
-ext["httpcore.version"] = ext["httpCoreVersion"]
-ext["spring-session.version"] = ext["springSessionVersion"]
-ext["hikaricp.version"] = ext["hikariVersion"]
-ext["groovy.version"] = ext["groovyVersion"]
-ext["log4j2.version"] = ext["log4jVersion"]
-ext["logback.version"] = ext["logbackVersion"]
-ext["commons-beanutils.version"] = ext["commonsBeansVersion"]
-ext["mysql.version"] = ext["mysqlVersion"]
-ext["postgresql.version"] = ext["postgresqlVersion"]
-ext["mariadb.version"] = ext["mariaDbVersion"]
-ext["jtds.version"] = ext["jtdsVersion"]
-ext["mssql-jdbc.version"] = ext["mssqlServerVersion"]
-ext["mongodb.version"] = ext["mongoDriverVersion"]
-ext["micrometer.version"] = ext["micrometerVersion"]

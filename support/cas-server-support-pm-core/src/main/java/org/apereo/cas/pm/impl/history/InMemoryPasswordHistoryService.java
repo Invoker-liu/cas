@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
  * @since 6.1.0
  */
 public class InMemoryPasswordHistoryService extends BasePasswordHistoryService {
-    private final List<PasswordHistoryEntity> history = new ArrayList<>(0);
+    private final List<PasswordHistoryEntity> history = new ArrayList<>();
 
     @Override
     public boolean exists(final PasswordChangeRequest changeRequest) {
         val username = changeRequest.getUsername();
-        val password = changeRequest.getPassword();
+        val password = changeRequest.toPassword();
         val encodedPassword = encodePassword(password);
         return history
             .stream()
@@ -44,7 +44,7 @@ public class InMemoryPasswordHistoryService extends BasePasswordHistoryService {
     @Override
     public boolean store(final PasswordChangeRequest changeRequest) {
         val username = changeRequest.getUsername();
-        val password = changeRequest.getPassword();
+        val password = changeRequest.toPassword();
         val encodedPassword = encodePassword(password);
         val entity = new PasswordHistoryEntity();
         entity.setUsername(username);

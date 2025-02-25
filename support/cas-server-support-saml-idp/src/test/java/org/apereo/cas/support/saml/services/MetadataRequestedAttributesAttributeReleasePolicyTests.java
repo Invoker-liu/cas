@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.File;
-import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,19 +24,36 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Misagh Moayyed
  * @since 6.1.0
  */
-@Tag("SAML")
+@Tag("SAMLAttributes")
 @TestPropertySource(properties = {
     "cas.authn.saml-idp.core.entity-id=https://cas.example.org/idp",
-    "cas.authn.saml-idp.metadata.file-system.location=${#systemProperties['java.io.tmpdir']}/idp-metadata3"
+    "cas.authn.saml-idp.metadata.file-system.location=${#systemProperties['java.io.tmpdir']}/idp-metadata83"
 })
-public class MetadataRequestedAttributesAttributeReleasePolicyTests extends BaseSamlIdPConfigurationTests {
+class MetadataRequestedAttributesAttributeReleasePolicyTests extends BaseSamlIdPConfigurationTests {
     private static final File JSON_FILE = new File(FileUtils.getTempDirectoryPath(), "MetadataRequestedAttributesAttributeReleasePolicyTests.json");
+
     private static final ObjectMapper MAPPER = JacksonObjectMapperFactory.builder()
         .defaultTypingEnabled(true).build().toObjectMapper();
 
+    @Test
+    void verifyNoServiceOrEntityId() throws Throwable {
+        val filter = new MetadataRequestedAttributesAttributeReleasePolicy();
+        filter.setUseFriendlyName(true);
+        val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
+        registeredService.setAttributeReleasePolicy(filter);
+        val principal = CoreAuthenticationTestUtils.getPrincipal("casuser",
+            CollectionUtils.wrap("eduPersonPrincipalName", "cas-eduPerson-user"));
+        val context = RegisteredServiceAttributeReleasePolicyContext.builder()
+            .registeredService(registeredService)
+            .applicationContext(applicationContext)
+            .principal(principal)
+            .build();
+        val attributes = filter.getAttributes(context);
+        assertTrue(attributes.isEmpty());
+    }
 
     @Test
-    public void verifyMatch() {
+    void verifyMatch() throws Throwable {
         val filter = new MetadataRequestedAttributesAttributeReleasePolicy();
         filter.setUseFriendlyName(true);
         val registeredService = SamlIdPTestUtils.getSamlRegisteredService();
@@ -47,6 +63,7 @@ public class MetadataRequestedAttributesAttributeReleasePolicyTests extends Base
         val context = RegisteredServiceAttributeReleasePolicyContext.builder()
             .registeredService(registeredService)
             .service(CoreAuthenticationTestUtils.getService())
+            .applicationContext(applicationContext)
             .principal(principal)
             .build();
         val attributes = filter.getAttributes(context);
@@ -58,7 +75,7 @@ public class MetadataRequestedAttributesAttributeReleasePolicyTests extends Base
     }
 
     @Test
-    public void verifySerializationToJson() throws IOException {
+    void verifySerializationToJson() throws Throwable {
         val filter = new MetadataRequestedAttributesAttributeReleasePolicy();
         filter.setUseFriendlyName(true);
         MAPPER.writeValue(JSON_FILE, filter);

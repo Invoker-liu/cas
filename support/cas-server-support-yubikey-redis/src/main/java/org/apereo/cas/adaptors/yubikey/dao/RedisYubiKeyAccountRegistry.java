@@ -5,16 +5,16 @@ import org.apereo.cas.adaptors.yubikey.YubiKeyAccountValidator;
 import org.apereo.cas.adaptors.yubikey.YubiKeyDeviceRegistrationRequest;
 import org.apereo.cas.adaptors.yubikey.YubiKeyRegisteredDevice;
 import org.apereo.cas.adaptors.yubikey.registry.BaseYubiKeyAccountRegistry;
+import org.apereo.cas.redis.core.CasRedisTemplate;
+
 
 import lombok.val;
 import org.apache.commons.io.IOUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Collectors;
@@ -33,12 +33,16 @@ public class RedisYubiKeyAccountRegistry extends BaseYubiKeyAccountRegistry {
      */
     public static final String CAS_YUBIKEY_PREFIX = RedisYubiKeyAccountRegistry.class.getSimpleName() + ':';
 
-    private final RedisTemplate<String, YubiKeyAccount> redisTemplate;
+    private final CasRedisTemplate<String, YubiKeyAccount> redisTemplate;
+
+    private final long scanCount;
 
     public RedisYubiKeyAccountRegistry(final YubiKeyAccountValidator accountValidator,
-                                       final RedisTemplate<String, YubiKeyAccount> mongoTemplate) {
+                                       final CasRedisTemplate<String, YubiKeyAccount> mongoTemplate,
+                                       final long scanCount) {
         super(accountValidator);
         this.redisTemplate = mongoTemplate;
+        this.scanCount = scanCount;
     }
 
     private static String getPatternYubiKeyDevices() {
@@ -87,9 +91,8 @@ public class RedisYubiKeyAccountRegistry extends BaseYubiKeyAccountRegistry {
 
     @Override
     public void deleteAll() {
-        val keys = (Set<String>) this.redisTemplate.keys(getPatternYubiKeyDevices());
-        if (keys != null) {
-            this.redisTemplate.delete(keys);
+        try (val keys = redisTemplate.scan(getPatternYubiKeyDevices(), this.scanCount)) {
+            this.redisTemplate.delete(keys.collect(Collectors.toSet()));
         }
     }
 
